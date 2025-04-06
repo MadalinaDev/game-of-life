@@ -21,25 +21,16 @@ import {
 import { cn } from "@/lib/utils";
 import { patterns } from "@/lib/patterns";
 
-/**
- * THEME/SYNOPSIS:
- * --------------
- * - Toggle "Reversing Time" to flip the grid every X generations.
- * - Toggle "Deadly Zone" to kill any cell with >=3 neighbors inside that zone.
- * - Toggle "Age Coloring" to see older cells become darker or just show them as black.
- */
 
 const GRID_SIZE = 50;
 const CELL_SIZE = 12;
 
-// A combined state so everything updates in one go
 type GameState = {
-  grid: boolean[][];   // whether each cell is alive
-  ageGrid: number[][]; // how many consecutive generations each cell has been alive
-  generation: number;  // current generation number
+  grid: boolean[][];
+  ageGrid: number[][];
+  generation: number;
 };
 
-// Deadly zone bounds (rows 15..24, cols 15..24)
 const DEADLY_ZONE = {
   startRow: 15,
   endRow: 25,
@@ -47,52 +38,34 @@ const DEADLY_ZONE = {
   endCol: 25,
 };
 
-// For speed slider
-const MIN_SPEED = 10;   // ms
-const MAX_SPEED = 500;  // ms
-const DEFAULT_SPEED = 100; // ms default
+const MIN_SPEED = 10;
+const MAX_SPEED = 500;
+const DEFAULT_SPEED = 100;
 
 export default function GameOfLife() {
-  /*
-   * MASTER GAME STATE
-   */
   const [gameState, setGameState] = useState<GameState>(() => ({
     grid: createEmptyGrid(),
     ageGrid: createEmptyAgeGrid(),
     generation: 0,
   }));
 
-  /*
-   * TOGGLES & SETTINGS
-   */
   const [isRunning, setIsRunning] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [maxGenerations, setMaxGenerations] = useState(0); // 0 => infinite
+  const [maxGenerations, setMaxGenerations] = useState(0);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [showOptions, setShowOptions] = useState(false);
-
-  // -- Our new toggles --
   const [reverseTimeEnabled, setReverseTimeEnabled] = useState(true);
   const [reverseTimeInterval, setReverseTimeInterval] = useState(15);
-
   const [deadlyZoneEnabled, setDeadlyZoneEnabled] = useState(true);
   const [ageColoringEnabled, setAgeColoringEnabled] = useState(true);
 
-  /*
-   * REFS
-   */
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runningRef = useRef(isRunning);
 
-  /* ----------------------------
-   *  SETUP & RENDER ON CHANGES
-   * ----------------------------*/
-  // Keep runningRef updated so the interval always sees the latest isRunning
   useEffect(() => {
     runningRef.current = isRunning;
   }, [isRunning]);
 
-  // Initialize canvas size on mount
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
@@ -102,12 +75,10 @@ export default function GameOfLife() {
     }
   }, []);
 
-  // Redraw on any state change
   useEffect(() => {
     drawGrid(gameState);
   }, [gameState, ageColoringEnabled, deadlyZoneEnabled]);
 
-  // Main simulation interval
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
 
@@ -144,22 +115,18 @@ export default function GameOfLife() {
     ageColoringEnabled,
   ]);
 
-  /* ---------------------
-   *   HELPER FUNCTIONS
-   * ---------------------*/
-
   function createEmptyGrid(): boolean[][] {
     return Array.from({ length: GRID_SIZE }, () =>
         Array<boolean>(GRID_SIZE).fill(false)
     );
   }
+
   function createEmptyAgeGrid(): number[][] {
     return Array.from({ length: GRID_SIZE }, () =>
         Array<number>(GRID_SIZE).fill(0)
     );
   }
 
-  // The "master" function that updates both the grid & ageGrid & generation
   function computeNextState(
       old: GameState,
       deadlyZone: boolean,
@@ -168,8 +135,6 @@ export default function GameOfLife() {
       ageColors: boolean
   ): GameState {
     const { grid, ageGrid, generation } = old;
-
-    // Make brand new copies
     const newGrid = createEmptyGrid();
     const newAge = createEmptyAgeGrid();
 
@@ -179,7 +144,6 @@ export default function GameOfLife() {
         const neighbors = countNeighbors(grid, row, col);
         let nextAlive: boolean;
 
-        // If deadlyZone is off, treat entire grid as normal
         const inDeadlyZone =
             deadlyZone &&
             row >= DEADLY_ZONE.startRow &&
@@ -188,23 +152,18 @@ export default function GameOfLife() {
             col < DEADLY_ZONE.endCol;
 
         if (inDeadlyZone && isAlive && neighbors >= 3) {
-          // Deadly zone kills cell
           nextAlive = false;
         } else {
-          // standard Conway
           nextAlive = conwayRule(isAlive, neighbors);
         }
 
         newGrid[row][col] = nextAlive;
-        // If alive, increment age or set to 1
         newAge[row][col] = nextAlive ? ageGrid[row][col] + 1 : 0;
       }
     }
 
-    // If reverseTime is enabled, do it every rtInterval generations
     const nextGen = generation + 1;
     if (reverseTime && rtInterval > 0 && nextGen % rtInterval === 0) {
-      // Flip the entire grid
       for (let row = 0; row < GRID_SIZE; row++) {
         for (let col = 0; col < GRID_SIZE; col++) {
           newGrid[row][col] = !newGrid[row][col];
@@ -220,7 +179,6 @@ export default function GameOfLife() {
     };
   }
 
-  // Standard Conway's rule
   function conwayRule(isAlive: boolean, neighbors: number) {
     if (isAlive) {
       return neighbors === 2 || neighbors === 3;
@@ -229,7 +187,6 @@ export default function GameOfLife() {
     }
   }
 
-  // Count neighbors (toroidal wrap-around)
   function countNeighbors(grid: boolean[][], x: number, y: number) {
     let count = 0;
     for (let i = -1; i <= 1; i++) {
@@ -244,27 +201,22 @@ export default function GameOfLife() {
     return count;
   }
 
-  // Color interpolation for older cells
   function getCellColor(age: number) {
-    // If user turned off age coloring, we might ignore age
     if (!ageColoringEnabled) {
-      // Just use black for alive cells
       return "#000";
     }
 
-    // Otherwise, a gradient from #c0fcbc (light green) to #003600 (dark green)
     const cappedAge = age > 20 ? 20 : age;
-    const startColor = { r: 192, g: 252, b: 188 }; // #c0fcbc
-    const endColor = { r: 0, g: 54, b: 0 };        // #003600
+    const startColor = { r: 192, g: 252, b: 188 };
+    const endColor = { r: 0, g: 54, b: 0 };
 
-    const factor = (cappedAge - 1) / 19; // 0..1
+    const factor = (cappedAge - 1) / 19;
     const r = Math.round(startColor.r + factor * (endColor.r - startColor.r));
     const g = Math.round(startColor.g + factor * (endColor.g - startColor.g));
     const b = Math.round(startColor.b + factor * (endColor.b - startColor.b));
     return `rgb(${r}, ${g}, ${b})`;
   }
 
-  // Draw the current state onto canvas
   function drawGrid(state: GameState) {
     const { grid, ageGrid } = state;
     const canvas = canvasRef.current;
@@ -279,14 +231,12 @@ export default function GameOfLife() {
         const alive = grid[row][col];
         const age = ageGrid[row][col];
 
-        // Fill color
         if (!alive) {
           ctx.fillStyle = "#fff";
         } else {
           ctx.fillStyle = getCellColor(age);
         }
 
-        // Outline the deadly zone in faint red (only if deadlyZoneEnabled = true)
         if (
             deadlyZoneEnabled &&
             row >= DEADLY_ZONE.startRow &&
@@ -305,10 +255,6 @@ export default function GameOfLife() {
       }
     }
   }
-
-  /* -----------------------
-   *   USER ACTIONS
-   * -----------------------*/
 
   const { grid, ageGrid, generation } = gameState;
 
@@ -363,15 +309,16 @@ export default function GameOfLife() {
     });
   }
 
-  // Drawing mode
   function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!isDrawing) return;
     toggleCellUnderCursor(e);
   }
+
   function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!isDrawing || !e.buttons) return;
     toggleCellUnderCursor(e);
   }
+
   function toggleCellUnderCursor(e: React.MouseEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -402,9 +349,6 @@ export default function GameOfLife() {
     }
   }
 
-  /* -----------------------
-   *   RENDER UI
-   * -----------------------*/
   return (
       <div className="flex flex-col items-center gap-4">
         <h1 className="text-xl font-bold mt-4">Conway's Game of Life - Toggles</h1>
@@ -413,7 +357,6 @@ export default function GameOfLife() {
           Use "Draw" mode to toggle cells, and "Run Until Generation" to stop automatically.
         </p>
 
-        {/* Control Buttons */}
         <div className="flex flex-wrap gap-2 justify-center mb-2">
           <TooltipProvider>
             <Tooltip>
@@ -476,7 +419,18 @@ export default function GameOfLife() {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        </div>
 
+        <div className="flex flex-wrap gap-2 justify-center mb-2">
+          <Button variant="outline" onClick={() => loadPattern(patterns.stillLife)}>
+            Still Life
+          </Button>
+          <Button variant="outline" onClick={() => loadPattern(patterns.deadEnd)}>
+            Dead End
+          </Button>
+          <Button variant="outline" onClick={() => loadPattern(patterns.gliderGun)}>
+            Glider Gun
+          </Button>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -493,24 +447,9 @@ export default function GameOfLife() {
           </TooltipProvider>
         </div>
 
-        {/* Patterns */}
-        <div className="flex flex-wrap gap-2 justify-center mb-2">
-          <Button variant="outline" onClick={() => loadPattern(patterns.stillLife)}>
-            Still Life
-          </Button>
-          <Button variant="outline" onClick={() => loadPattern(patterns.deadEnd)}>
-            Dead End
-          </Button>
-          <Button variant="outline" onClick={() => loadPattern(patterns.gliderGun)}>
-            Glider Gun
-          </Button>
-        </div>
-
-        {/* Options Modal */}
         {showOptions && (
             <OptionsModal onClose={() => setShowOptions(false)}>
               <div className="flex flex-col gap-4">
-                {/* Reversing Time */}
                 <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-2">
                     <input
@@ -534,7 +473,6 @@ export default function GameOfLife() {
                   </div>
                 </div>
 
-                {/* Deadly Zone */}
                 <label className="flex items-center gap-2">
                   <input
                       type="checkbox"
@@ -544,7 +482,6 @@ export default function GameOfLife() {
                   <span className="text-sm">Enable Deadly Zone</span>
                 </label>
 
-                {/* Age coloring */}
                 <label className="flex items-center gap-2">
                   <input
                       type="checkbox"
@@ -554,7 +491,6 @@ export default function GameOfLife() {
                   <span className="text-sm">Enable Age-Based Coloring</span>
                 </label>
 
-                {/* Speed Slider */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <label htmlFor="speedSlider" className="text-sm">Speed:</label>
@@ -571,7 +507,6 @@ export default function GameOfLife() {
                   <span className="text-sm text-center">{speed} ms</span>
                 </div>
 
-                {/* Generation Input */}
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <label htmlFor="maxGen" className="text-sm">
@@ -592,10 +527,8 @@ export default function GameOfLife() {
             </OptionsModal>
         )}
 
-        {/* Generation Counter */}
         <div className="text-sm my-2">Current Generation: {generation}</div>
 
-        {/* Canvas */}
         <div
             className={cn(
                 "border border-gray-300 rounded overflow-hidden cursor-pointer",
@@ -618,11 +551,6 @@ export default function GameOfLife() {
   );
 }
 
-/* --------------------------------
-   STANDARD CONWAY HELPER FUNCTIONS
-   --------------------------------*/
-
-// Standard Conway rule
 function conwayRule(isAlive: boolean, neighbors: number): boolean {
   if (isAlive) {
     return neighbors === 2 || neighbors === 3;
@@ -630,7 +558,6 @@ function conwayRule(isAlive: boolean, neighbors: number): boolean {
   return neighbors === 3;
 }
 
-// Count live neighbors with wrap-around edges
 function countNeighbors(grid: boolean[][], x: number, y: number): number {
   let count = 0;
   const size = grid.length;
@@ -645,12 +572,12 @@ function countNeighbors(grid: boolean[][], x: number, y: number): number {
   return count;
 }
 
-// Create empty 2D arrays
 function createEmptyGrid(): boolean[][] {
   return Array.from({ length: GRID_SIZE }, () =>
       Array<boolean>(GRID_SIZE).fill(false)
   );
 }
+
 function createEmptyAgeGrid(): number[][] {
   return Array.from({ length: GRID_SIZE }, () =>
       Array<number>(GRID_SIZE).fill(0)
