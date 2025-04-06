@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { OptionsModal } from "@/components/ui/OptionsModal";
 import {
   Play,
   Pause,
@@ -11,6 +10,7 @@ import {
   Pencil,
   MousePointer,
   Settings,
+  Info,
 } from "lucide-react";
 import {
   Tooltip,
@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { patterns } from "@/lib/patterns";
-
+import { OptionsModal } from "@/components/ui/OptionsModal";
 
 const GRID_SIZE = 50;
 const CELL_SIZE = 12;
@@ -226,6 +226,10 @@ export default function GameOfLife() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE; col++) {
         const alive = grid[row][col];
@@ -244,9 +248,9 @@ export default function GameOfLife() {
             col >= DEADLY_ZONE.startCol &&
             col < DEADLY_ZONE.endCol
         ) {
-          ctx.strokeStyle = "rgba(255, 0, 0, 0.4)";
+          ctx.strokeStyle = "rgba(255, 0, 0, 0.2)";
         } else {
-          ctx.strokeStyle = "#ddd";
+          ctx.strokeStyle = "#eee";
         }
         ctx.lineWidth = 0.5;
 
@@ -255,8 +259,6 @@ export default function GameOfLife() {
       }
     }
   }
-
-  const { grid, ageGrid, generation } = gameState;
 
   function toggleRunning() {
     setIsRunning((prev) => !prev);
@@ -350,202 +352,257 @@ export default function GameOfLife() {
   }
 
   return (
-      <div className="flex flex-col items-center gap-4">
-        <h1 className="text-xl font-bold mt-4">Conway's Game of Life - Toggles</h1>
-        <p className="text-sm text-center max-w-lg">
-          Adjust the toggles below to customize the rules.
-          Use "Draw" mode to toggle cells, and "Run Until Generation" to stop automatically.
-        </p>
+      <div className="flex flex-col items-center gap-6 w-full">
+        {/* Header Section */}
+        <header className="w-full py-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-primary bg-clip-text text-transparent bg-gray-800">
+              Conway's Game of Life
+            </h1>
+            <div className="relative group">
+              <Button variant="ghost" size="icon" className="size-8 text-grey-100 hover:bg-grey-10">
+                <Info className="size-4"/>
+              </Button>
+              <div
+                  className="absolute right-0 top-full mt-2 w-64 p-3 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                <p className="text-sm text-gray-700">
+                  Adjust the toggles below to customize the rules. Use "Draw" mode to toggle cells, and "Run Until
+                  Generation" to stop automatically.
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <div className="flex flex-wrap gap-2 justify-center mb-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                    variant={isRunning ? "destructive" : "default"}
-                    onClick={toggleRunning}
-                >
-                  {isRunning ? <Pause className="mr-2" /> : <Play className="mr-2" />}
-                  {isRunning ? "Pause" : "Start"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isRunning ? "Pause the simulation" : "Start the simulation"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        </header>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="destructive" onClick={resetGrid}>
-                  <StopCircle className="mr-2" />
-                  Stop
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Reset the grid</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {/* Main Content */}
+        <div className="w-full flex flex-col lg:flex-row gap-6">
+          {/* Controls Section */}
+          <div className="flex flex-col gap-4 w-full lg:w-auto">
+            <div className="glass-panel p-4 flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2 justify-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                          variant={isRunning ? "destructive" : "default"}
+                          onClick={toggleRunning}
+                          className="control-button w-24"
+                      >
+                        {isRunning ? <Pause className=" size-4 mr-2" /> : <Play className="size-4 mr-2" />}
+                        {isRunning ? "Pause" : "Start"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isRunning ? "Pause the simulation" : "Start the simulation"}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="secondary" onClick={generateRandomGrid}>
-                  <Shuffle className="mr-2" />
-                  Random
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Generate a random pattern</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                          variant="destructive"
+                          onClick={resetGrid}
+                          className="control-button"
+                      >
+                        <StopCircle className="mr-2" />
+                        Stop
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reset the grid</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                    variant={isDrawing ? "secondary" : "outline"}
-                    onClick={() => setIsDrawing(!isDrawing)}
-                >
-                  {isDrawing ? (
-                      <Pencil className="mr-2" />
-                  ) : (
-                      <MousePointer className="mr-2" />
-                  )}
-                  {isDrawing ? "Drawing" : "Draw"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isDrawing ? "Currently in drawing mode" : "Enable drawing mode"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                          variant="secondary"
+                          onClick={generateRandomGrid}
+                          className="control-button"
+                      >
+                        <Shuffle className="mr-2" />
+                        Random
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Generate a random pattern</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-        <div className="flex flex-wrap gap-2 justify-center mb-2">
-          <Button variant="outline" onClick={() => loadPattern(patterns.stillLife)}>
-            Still Life
-          </Button>
-          <Button variant="outline" onClick={() => loadPattern(patterns.deadEnd)}>
-            Dead End
-          </Button>
-          <Button variant="outline" onClick={() => loadPattern(patterns.gliderGun)}>
-            Glider Gun
-          </Button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                          variant={isDrawing ? "secondary" : "outline"}
+                          onClick={() => setIsDrawing(!isDrawing)}
+                          className="control-button w-26"
+                      >
+                        {isDrawing ? (
+                            <Pencil className="mr-2" />
+                        ) : (
+                            <MousePointer className="mr-2" />
+                        )}
+                        {isDrawing ? "Drawing" : "Draw"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isDrawing ? "Currently in drawing mode" : "Enable drawing mode"}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+
+              <div className="flex flex-wrap gap-2 justify-center">
                 <Button
                     variant="outline"
-                    onClick={() => setShowOptions(true)}
+                    onClick={() => loadPattern(patterns.stillLife)}
+                    className="pattern-button"
                 >
-                  <Settings className="mr-2" />
-                  Options
+                  Still Life
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Open game options</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.deadEnd)}
+                    className="pattern-button"
+                >
+                  Dead End
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.gliderGun)}
+                    className="pattern-button"
+                >
+                  Glider Gun
+                </Button>
+              </div>
+            </div>
 
-        {showOptions && (
-            <OptionsModal onClose={() => setShowOptions(false)}>
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        checked={reverseTimeEnabled}
-                        onChange={(e) => setReverseTimeEnabled(e.target.checked)}
-                    />
-                    <span className="text-sm">Enable Reversing Time</span>
-                  </label>
+            {/* Generation counter */}
+            <div className="glass-panel p-4 text-center">
+              <div className="text-sm font-medium text-muted-foreground">Generation</div>
+              <div className="text-2xl font-bold text-primary">{gameState.generation}</div>
+            </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm whitespace-nowrap">Interval:</span>
-                    <input
-                        type="range"
-                        min="1"
-                        max="50"
-                        value={reverseTimeInterval}
-                        onChange={(e) => setReverseTimeInterval(Number(e.target.value))}
-                    />
-                    <span className="text-sm">{reverseTimeInterval}</span>
-                  </div>
-                </div>
+            {/* Permanent Options Panel */}
+            <div className="glass-panel p-4 flex flex-col gap-7">
+              <h3 className="font-semibold text-m text-center">Game Options</h3>
 
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2">
                   <input
                       type="checkbox"
-                      checked={deadlyZoneEnabled}
-                      onChange={(e) => setDeadlyZoneEnabled(e.target.checked)}
+                      checked={reverseTimeEnabled}
+                      onChange={(e) => setReverseTimeEnabled(e.target.checked)}
+                      className="rounded text-primary focus:ring-primary"
                   />
-                  <span className="text-sm">Enable Deadly Zone</span>
+                  <span className="text-sm">Enable Reversing Time</span>
                 </label>
 
-                <label className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm whitespace-nowrap">Interval:</span>
                   <input
-                      type="checkbox"
-                      checked={ageColoringEnabled}
-                      onChange={(e) => setAgeColoringEnabled(e.target.checked)}
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={reverseTimeInterval}
+                      onChange={(e) => setReverseTimeInterval(Number(e.target.value))}
+                      className="w-full accent-primary"
                   />
-                  <span className="text-sm">Enable Age-Based Coloring</span>
-                </label>
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="speedSlider" className="text-sm">Speed:</label>
-                    <input
-                        id="speedSlider"
-                        type="range"
-                        min={MIN_SPEED}
-                        max={MAX_SPEED}
-                        value={speed}
-                        onChange={(e) => setSpeed(Number(e.target.value))}
-                        className="w-full"
-                    />
-                  </div>
-                  <span className="text-sm text-center">{speed} ms</span>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="maxGen" className="text-sm">
-                      Run Until Generation:
-                    </label>
-                    <input
-                        id="maxGen"
-                        type="number"
-                        min={0}
-                        value={maxGenerations}
-                        onChange={(e) => setMaxGenerations(Number(e.target.value))}
-                        className="border rounded px-2 py-1 w-full text-sm"
-                        placeholder="0 for infinite"
-                    />
-                  </div>
+                  <span className="text-sm">{reverseTimeInterval}</span>
                 </div>
               </div>
-            </OptionsModal>
-        )}
 
-        <div className="text-sm my-2">Current Generation: {generation}</div>
+              <label className="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    checked={deadlyZoneEnabled}
+                    onChange={(e) => setDeadlyZoneEnabled(e.target.checked)}
+                    className="rounded text-primary focus:ring-primary"
+                />
+                <span className="text-sm">Enable Deadly Zone</span>
+              </label>
 
-        <div
-            className={cn(
-                "border border-gray-300 rounded overflow-hidden cursor-pointer",
-                isDrawing && "cursor-crosshair"
-            )}
-        >
-          <canvas
-              ref={canvasRef}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              className="max-w-full"
-          />
-        </div>
-        <div className="text-xs text-gray-500 mt-1">
-          {isDrawing
-              ? "Click/drag on cells to toggle them"
-              : "Enable drawing mode to edit the grid"}
+              <label className="flex items-center gap-2">
+                <input
+                    type="checkbox"
+                    checked={ageColoringEnabled}
+                    onChange={(e) => setAgeColoringEnabled(e.target.checked)}
+                    className="rounded text-primary focus:ring-primary"
+                />
+                <span className="text-sm">Enable Age-Based Coloring</span>
+              </label>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="speedSlider" className="text-sm">Speed:</label>
+                  <input
+                      id="speedSlider"
+                      type="range"
+                      min={MIN_SPEED}
+                      max={MAX_SPEED}
+                      value={speed}
+                      onChange={(e) => setSpeed(Number(e.target.value))}
+                      className="w-full accent-primary"
+                  />
+                </div>
+                <span className="text-sm text-center">{speed} ms</span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <label htmlFor="maxGen" className="text-sm">
+                    Run Until Generation:
+                  </label>
+                  <input
+                      id="maxGen"
+                      type="number"
+                      min={0}
+                      value={maxGenerations}
+                      onChange={(e) => setMaxGenerations(Number(e.target.value))}
+                      className="border rounded px-2 py-1 w-full text-sm focus:ring-primary focus:border-primary"
+                      placeholder="0 for infinite"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Canvas Section */}
+          <div className="flex-1 flex flex-col items-center">
+            <div
+                className={cn(
+                    "glass-panel p-2 border-2",
+                    isDrawing ? "border-primary/50" : "border-transparent"
+                )}
+            >
+              <div className="relative">
+                <canvas
+                    ref={canvasRef}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    className="rounded-lg shadow-inner bg-white dark:bg-gray-900"
+                />
+                {deadlyZoneEnabled && (
+                    <div
+                        className="absolute border-2 border-red-400/30 pointer-events-none"
+                        style={{
+                          left: `${DEADLY_ZONE.startCol * CELL_SIZE}px`,
+                          top: `${DEADLY_ZONE.startRow * CELL_SIZE}px`,
+                          width: `${(DEADLY_ZONE.endCol - DEADLY_ZONE.startCol) * CELL_SIZE}px`,
+                          height: `${(DEADLY_ZONE.endRow - DEADLY_ZONE.startRow) * CELL_SIZE}px`,
+                        }}
+                    />
+                )}
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground mt-2">
+              {isDrawing
+                  ? "Click or drag to toggle cells"
+                  : "Enable drawing mode to edit the grid"}
+            </div>
+          </div>
         </div>
       </div>
   );

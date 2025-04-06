@@ -59,7 +59,7 @@ export function OptionsModal({ children, onClose }: OptionsModalProps) {
     return (
         <div
             ref={modalRef}
-            className="fixed z-50 bg-background border border-gray-300 rounded-lg shadow-lg p-4 w-72"
+            className="fixed z-50 bg-background/90 backdrop-blur-lg border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 w-80 max-w-[90vw]"
             style={{
                 left: `${position.x}px`,
                 top: `${position.y}px`,
