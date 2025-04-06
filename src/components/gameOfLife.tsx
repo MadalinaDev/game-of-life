@@ -560,6 +560,7 @@ export default function GameOfLife() {
               <div className="text-2xl font-bold text-primary">{gameState.generation}</div>
             </div>
 
+
             <div className="glass-panel p-4 flex flex-col gap-2">
               <h3 className="font-semibold text-m text-center">Game Options</h3>
 
