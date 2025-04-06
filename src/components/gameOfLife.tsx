@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { OptionsModal } from "@/components/ui/OptionsModal";
 import {
   Play,
   Pause,
@@ -9,6 +10,7 @@ import {
   Shuffle,
   Pencil,
   MousePointer,
+  Settings,
 } from "lucide-react";
 import {
   Tooltip,
@@ -51,7 +53,7 @@ const MAX_SPEED = 500;  // ms
 const DEFAULT_SPEED = 100; // ms default
 
 export default function GameOfLife() {
-  /* 
+  /*
    * MASTER GAME STATE
    */
   const [gameState, setGameState] = useState<GameState>(() => ({
@@ -67,6 +69,7 @@ export default function GameOfLife() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [maxGenerations, setMaxGenerations] = useState(0); // 0 => infinite
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
+  const [showOptions, setShowOptions] = useState(false);
 
   // -- Our new toggles --
   const [reverseTimeEnabled, setReverseTimeEnabled] = useState(true);
@@ -113,11 +116,11 @@ export default function GameOfLife() {
         if (runningRef.current) {
           setGameState((old) => {
             const newState = computeNextState(
-              old,
-              deadlyZoneEnabled,
-              reverseTimeEnabled,
-              reverseTimeInterval,
-              ageColoringEnabled
+                old,
+                deadlyZoneEnabled,
+                reverseTimeEnabled,
+                reverseTimeInterval,
+                ageColoringEnabled
             );
             if (maxGenerations > 0 && newState.generation >= maxGenerations) {
               setIsRunning(false);
@@ -147,22 +150,22 @@ export default function GameOfLife() {
 
   function createEmptyGrid(): boolean[][] {
     return Array.from({ length: GRID_SIZE }, () =>
-      Array<boolean>(GRID_SIZE).fill(false)
+        Array<boolean>(GRID_SIZE).fill(false)
     );
   }
   function createEmptyAgeGrid(): number[][] {
     return Array.from({ length: GRID_SIZE }, () =>
-      Array<number>(GRID_SIZE).fill(0)
+        Array<number>(GRID_SIZE).fill(0)
     );
   }
 
   // The "master" function that updates both the grid & ageGrid & generation
   function computeNextState(
-    old: GameState,
-    deadlyZone: boolean,
-    reverseTime: boolean,
-    rtInterval: number,
-    ageColors: boolean
+      old: GameState,
+      deadlyZone: boolean,
+      reverseTime: boolean,
+      rtInterval: number,
+      ageColors: boolean
   ): GameState {
     const { grid, ageGrid, generation } = old;
 
@@ -178,11 +181,11 @@ export default function GameOfLife() {
 
         // If deadlyZone is off, treat entire grid as normal
         const inDeadlyZone =
-          deadlyZone &&
-          row >= DEADLY_ZONE.startRow &&
-          row < DEADLY_ZONE.endRow &&
-          col >= DEADLY_ZONE.startCol &&
-          col < DEADLY_ZONE.endCol;
+            deadlyZone &&
+            row >= DEADLY_ZONE.startRow &&
+            row < DEADLY_ZONE.endRow &&
+            col >= DEADLY_ZONE.startCol &&
+            col < DEADLY_ZONE.endCol;
 
         if (inDeadlyZone && isAlive && neighbors >= 3) {
           // Deadly zone kills cell
@@ -285,11 +288,11 @@ export default function GameOfLife() {
 
         // Outline the deadly zone in faint red (only if deadlyZoneEnabled = true)
         if (
-          deadlyZoneEnabled &&
-          row >= DEADLY_ZONE.startRow &&
-          row < DEADLY_ZONE.endRow &&
-          col >= DEADLY_ZONE.startCol &&
-          col < DEADLY_ZONE.endCol
+            deadlyZoneEnabled &&
+            row >= DEADLY_ZONE.startRow &&
+            row < DEADLY_ZONE.endRow &&
+            col >= DEADLY_ZONE.startCol &&
+            col < DEADLY_ZONE.endCol
         ) {
           ctx.strokeStyle = "rgba(255, 0, 0, 0.4)";
         } else {
@@ -403,189 +406,215 @@ export default function GameOfLife() {
    *   RENDER UI
    * -----------------------*/
   return (
-    <div className="flex flex-col items-center gap-4">
-      <h1 className="text-xl font-bold mt-4">Conway’s Game of Life - Toggles</h1>
-      <p className="text-sm text-center max-w-lg">
-        Adjust the toggles below to customize the rules.  
-        Use "Draw" mode to toggle cells, and "Run Until Generation" to stop automatically.
-      </p>
+      <div className="flex flex-col items-center gap-4">
+        <h1 className="text-xl font-bold mt-4">Conway's Game of Life - Toggles</h1>
+        <p className="text-sm text-center max-w-lg">
+          Adjust the toggles below to customize the rules.
+          Use "Draw" mode to toggle cells, and "Run Until Generation" to stop automatically.
+        </p>
 
-      {/* Control Buttons */}
-      <div className="flex flex-wrap gap-2 justify-center mb-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isRunning ? "destructive" : "default"}
-                onClick={toggleRunning}
-              >
-                {isRunning ? <Pause className="mr-2" /> : <Play className="mr-2" />}
-                {isRunning ? "Pause" : "Start"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isRunning ? "Pause the simulation" : "Start the simulation"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Control Buttons */}
+        <div className="flex flex-wrap gap-2 justify-center mb-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                    variant={isRunning ? "destructive" : "default"}
+                    onClick={toggleRunning}
+                >
+                  {isRunning ? <Pause className="mr-2" /> : <Play className="mr-2" />}
+                  {isRunning ? "Pause" : "Start"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isRunning ? "Pause the simulation" : "Start the simulation"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="destructive" onClick={resetGrid}>
-                <StopCircle className="mr-2" />
-                Stop
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Reset the grid</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="destructive" onClick={resetGrid}>
+                  <StopCircle className="mr-2" />
+                  Stop
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reset the grid</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="secondary" onClick={generateRandomGrid}>
-                <Shuffle className="mr-2" />
-                Random
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Generate a random pattern</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="secondary" onClick={generateRandomGrid}>
+                  <Shuffle className="mr-2" />
+                  Random
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Generate a random pattern</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isDrawing ? "secondary" : "outline"}
-                onClick={() => setIsDrawing(!isDrawing)}
-              >
-                {isDrawing ? (
-                  <Pencil className="mr-2" />
-                ) : (
-                  <MousePointer className="mr-2" />
-                )}
-                {isDrawing ? "Drawing" : "Draw"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isDrawing ? "Currently in drawing mode" : "Enable drawing mode"}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                    variant={isDrawing ? "secondary" : "outline"}
+                    onClick={() => setIsDrawing(!isDrawing)}
+                >
+                  {isDrawing ? (
+                      <Pencil className="mr-2" />
+                  ) : (
+                      <MousePointer className="mr-2" />
+                  )}
+                  {isDrawing ? "Drawing" : "Draw"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isDrawing ? "Currently in drawing mode" : "Enable drawing mode"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-      {/* Patterns */}
-      <div className="flex flex-wrap gap-2 justify-center mb-2">
-        <Button variant="outline" onClick={() => loadPattern(patterns.stillLife)}>
-          Still Life
-        </Button>
-        <Button variant="outline" onClick={() => loadPattern(patterns.deadEnd)}>
-          Dead End
-        </Button>
-        <Button variant="outline" onClick={() => loadPattern(patterns.gliderGun)}>
-          Glider Gun
-        </Button>
-      </div>
-
-      {/* Toggles / Sliders for Reversing Time */}
-      <div className="flex flex-col gap-2 items-center">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={reverseTimeEnabled}
-            onChange={(e) => setReverseTimeEnabled(e.target.checked)}
-          />
-          <span className="text-sm">Enable Reversing Time</span>
-        </label>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm whitespace-nowrap">Interval:</span>
-          <input
-            type="range"
-            min="1"
-            max="50"
-            value={reverseTimeInterval}
-            onChange={(e) => setReverseTimeInterval(Number(e.target.value))}
-          />
-          <span className="text-sm">{reverseTimeInterval}</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                    variant="outline"
+                    onClick={() => setShowOptions(true)}
+                >
+                  <Settings className="mr-2" />
+                  Options
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Open game options</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        {/* Deadly Zone */}
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={deadlyZoneEnabled}
-            onChange={(e) => setDeadlyZoneEnabled(e.target.checked)}
-          />
-          <span className="text-sm">Enable Deadly Zone</span>
-        </label>
+        {/* Patterns */}
+        <div className="flex flex-wrap gap-2 justify-center mb-2">
+          <Button variant="outline" onClick={() => loadPattern(patterns.stillLife)}>
+            Still Life
+          </Button>
+          <Button variant="outline" onClick={() => loadPattern(patterns.deadEnd)}>
+            Dead End
+          </Button>
+          <Button variant="outline" onClick={() => loadPattern(patterns.gliderGun)}>
+            Glider Gun
+          </Button>
+        </div>
 
-        {/* Age coloring */}
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={ageColoringEnabled}
-            onChange={(e) => setAgeColoringEnabled(e.target.checked)}
-          />
-          <span className="text-sm">Enable Age-Based Coloring</span>
-        </label>
-      </div>
+        {/* Options Modal */}
+        {showOptions && (
+            <OptionsModal onClose={() => setShowOptions(false)}>
+              <div className="flex flex-col gap-4">
+                {/* Reversing Time */}
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={reverseTimeEnabled}
+                        onChange={(e) => setReverseTimeEnabled(e.target.checked)}
+                    />
+                    <span className="text-sm">Enable Reversing Time</span>
+                  </label>
 
-      {/* Speed Slider */}
-      <div className="flex items-center gap-2 mt-3">
-        <label htmlFor="speedSlider" className="text-sm">Speed:</label>
-        <input
-          id="speedSlider"
-          type="range"
-          min={MIN_SPEED}
-          max={MAX_SPEED}
-          value={speed}
-          onChange={(e) => setSpeed(Number(e.target.value))}
-          className="w-40"
-        />
-        <span className="text-sm">{speed} ms</span>
-      </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm whitespace-nowrap">Interval:</span>
+                    <input
+                        type="range"
+                        min="1"
+                        max="50"
+                        value={reverseTimeInterval}
+                        onChange={(e) => setReverseTimeInterval(Number(e.target.value))}
+                    />
+                    <span className="text-sm">{reverseTimeInterval}</span>
+                  </div>
+                </div>
 
-      {/* Generation Input */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="maxGen" className="text-sm">
-          Run Until Generation:
-        </label>
-        <input
-          id="maxGen"
-          type="number"
-          min={0}
-          value={maxGenerations}
-          onChange={(e) => setMaxGenerations(Number(e.target.value))}
-          className="border rounded px-2 py-1 w-24 text-sm"
-          placeholder="0 for infinite"
-        />
-      </div>
+                {/* Deadly Zone */}
+                <label className="flex items-center gap-2">
+                  <input
+                      type="checkbox"
+                      checked={deadlyZoneEnabled}
+                      onChange={(e) => setDeadlyZoneEnabled(e.target.checked)}
+                  />
+                  <span className="text-sm">Enable Deadly Zone</span>
+                </label>
 
-      {/* Generation Counter */}
-      <div className="text-sm my-2">Current Generation: {generation}</div>
+                {/* Age coloring */}
+                <label className="flex items-center gap-2">
+                  <input
+                      type="checkbox"
+                      checked={ageColoringEnabled}
+                      onChange={(e) => setAgeColoringEnabled(e.target.checked)}
+                  />
+                  <span className="text-sm">Enable Age-Based Coloring</span>
+                </label>
 
-      {/* Canvas */}
-      <div
-        className={cn(
-          "border border-gray-300 rounded overflow-hidden cursor-pointer",
-          isDrawing && "cursor-crosshair"
+                {/* Speed Slider */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="speedSlider" className="text-sm">Speed:</label>
+                    <input
+                        id="speedSlider"
+                        type="range"
+                        min={MIN_SPEED}
+                        max={MAX_SPEED}
+                        value={speed}
+                        onChange={(e) => setSpeed(Number(e.target.value))}
+                        className="w-full"
+                    />
+                  </div>
+                  <span className="text-sm text-center">{speed} ms</span>
+                </div>
+
+                {/* Generation Input */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="maxGen" className="text-sm">
+                      Run Until Generation:
+                    </label>
+                    <input
+                        id="maxGen"
+                        type="number"
+                        min={0}
+                        value={maxGenerations}
+                        onChange={(e) => setMaxGenerations(Number(e.target.value))}
+                        className="border rounded px-2 py-1 w-full text-sm"
+                        placeholder="0 for infinite"
+                    />
+                  </div>
+                </div>
+              </div>
+            </OptionsModal>
         )}
-      >
-        <canvas
-          ref={canvasRef}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          className="max-w-full"
-        />
+
+        {/* Generation Counter */}
+        <div className="text-sm my-2">Current Generation: {generation}</div>
+
+        {/* Canvas */}
+        <div
+            className={cn(
+                "border border-gray-300 rounded overflow-hidden cursor-pointer",
+                isDrawing && "cursor-crosshair"
+            )}
+        >
+          <canvas
+              ref={canvasRef}
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              className="max-w-full"
+          />
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          {isDrawing
+              ? "Click/drag on cells to toggle them"
+              : "Enable drawing mode to edit the grid"}
+        </div>
       </div>
-      <div className="text-xs text-gray-500 mt-1">
-        {isDrawing
-          ? "Click/drag on cells to toggle them"
-          : "Enable drawing mode to edit the grid"}
-      </div>
-    </div>
   );
 }
 
@@ -619,11 +648,11 @@ function countNeighbors(grid: boolean[][], x: number, y: number): number {
 // Create empty 2D arrays
 function createEmptyGrid(): boolean[][] {
   return Array.from({ length: GRID_SIZE }, () =>
-    Array<boolean>(GRID_SIZE).fill(false)
+      Array<boolean>(GRID_SIZE).fill(false)
   );
 }
 function createEmptyAgeGrid(): number[][] {
   return Array.from({ length: GRID_SIZE }, () =>
-    Array<number>(GRID_SIZE).fill(0)
+      Array<number>(GRID_SIZE).fill(0)
   );
 }
