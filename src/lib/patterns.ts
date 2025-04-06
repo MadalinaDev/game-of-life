@@ -7,30 +7,30 @@ export const patterns = {
     [0, 0],
     [0, 1],
     [1, 0],
-    [1, 1], // Block
+    [1, 1],
     [3, 0],
     [3, 1],
     [4, 0],
-    [4, 1], // Block
+    [4, 1],
     [-3, -3],
     [-3, -2],
     [-2, -3],
-    [-2, -2], // Block
+    [-2, -2],
   ],
 
-  // Pattern that quickly reaches a dead end (all cells die)
+  // Pattern that quickly dies
   deadEnd: [
     [0, 0],
     [0, 1],
-    [0, 2], // Simple vertical line (will oscillate once then die)
+    [0, 2],
   ],
 
-  // Gosper Glider Gun - creates a stream of gliders
+  // Gosper Glider Gun
   gliderGun: [
     [0, -4],
     [0, -3],
     [1, -4],
-    [1, -3], // Block
+    [1, -3],
     [10, -4],
     [10, -3],
     [10, -2],
@@ -63,5 +63,46 @@ export const patterns = {
     [34, -4],
     [35, -5],
     [35, -4],
+  ],
+
+  // New patterns added
+  blinker: [
+    [0, 0],
+    [0, 1],
+    [0, 2],
+  ],
+
+  glider: [
+    [0, 0],
+    [1, 1],
+    [2, 1],
+    [0, 2],
+    [1, 2],
+  ],
+
+  beacon: [
+    [0, 0],
+    [0, 1],
+    [1, 0],
+    [2, 3],
+    [3, 2],
+    [3, 3],
+  ],
+
+  toad: [
+    [1, 0],
+    [2, 0],
+    [3, 0],
+    [0, 1],
+    [1, 1],
+    [2, 1],
+  ],
+
+  rPentomino: [
+    [0, 1],
+    [1, 1],
+    [1, 0],
+    [1, 2],
+    [2, 0],
   ],
 };
