@@ -9,9 +9,13 @@ import {
   Shuffle,
   Pencil,
   MousePointer,
-  Settings,
+  RotateCw,
+  FlipHorizontal,
+  FlipVertical,
+  Save,
   Info,
 } from "lucide-react";
+import { Upload as Load } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -20,7 +24,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { patterns } from "@/lib/patterns";
-import { OptionsModal } from "@/components/ui/OptionsModal";
 
 const GRID_SIZE = 50;
 const CELL_SIZE = 12;
@@ -53,14 +56,18 @@ export default function GameOfLife() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [maxGenerations, setMaxGenerations] = useState(0);
   const [speed, setSpeed] = useState(DEFAULT_SPEED);
-  const [showOptions, setShowOptions] = useState(false);
   const [reverseTimeEnabled, setReverseTimeEnabled] = useState(true);
   const [reverseTimeInterval, setReverseTimeInterval] = useState(15);
   const [deadlyZoneEnabled, setDeadlyZoneEnabled] = useState(true);
   const [ageColoringEnabled, setAgeColoringEnabled] = useState(true);
+  const [drawMode, setDrawMode] = useState<'single' | 'continuous'>('continuous');
+  const [patternRotation, setPatternRotation] = useState(0);
+  const [patternFlip, setPatternFlip] = useState<'none' | 'horizontal' | 'vertical'>('none');
+  const [colorTheme, setColorTheme] = useState<'classic' | 'rainbow' | 'heatmap'>('classic');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runningRef = useRef(isRunning);
+  const lastDrawnCell = useRef<[number, number] | null>(null);
 
   useEffect(() => {
     runningRef.current = isRunning;
@@ -77,7 +84,7 @@ export default function GameOfLife() {
 
   useEffect(() => {
     drawGrid(gameState);
-  }, [gameState, ageColoringEnabled, deadlyZoneEnabled]);
+  }, [gameState, ageColoringEnabled, deadlyZoneEnabled, colorTheme]);
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -105,15 +112,7 @@ export default function GameOfLife() {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [
-    isRunning,
-    speed,
-    maxGenerations,
-    deadlyZoneEnabled,
-    reverseTimeEnabled,
-    reverseTimeInterval,
-    ageColoringEnabled,
-  ]);
+  }, [isRunning, speed, maxGenerations, deadlyZoneEnabled, reverseTimeEnabled, reverseTimeInterval, ageColoringEnabled]);
 
   function createEmptyGrid(): boolean[][] {
     return Array.from({ length: GRID_SIZE }, () =>
@@ -179,42 +178,32 @@ export default function GameOfLife() {
     };
   }
 
-  function conwayRule(isAlive: boolean, neighbors: number) {
-    if (isAlive) {
-      return neighbors === 2 || neighbors === 3;
-    } else {
-      return neighbors === 3;
-    }
-  }
-
-  function countNeighbors(grid: boolean[][], x: number, y: number) {
-    let count = 0;
-    for (let i = -1; i <= 1; i++) {
-      for (let j = -1; j <= 1; j++) {
-        if (i === 0 && j === 0) continue;
-
-        const nx = (x + i + GRID_SIZE) % GRID_SIZE;
-        const ny = (y + j + GRID_SIZE) % GRID_SIZE;
-        if (grid[nx][ny]) count++;
-      }
-    }
-    return count;
-  }
-
   function getCellColor(age: number) {
     if (!ageColoringEnabled) {
       return "#000";
     }
 
     const cappedAge = age > 20 ? 20 : age;
-    const startColor = { r: 192, g: 252, b: 188 };
-    const endColor = { r: 0, g: 54, b: 0 };
 
-    const factor = (cappedAge - 1) / 19;
-    const r = Math.round(startColor.r + factor * (endColor.r - startColor.r));
-    const g = Math.round(startColor.g + factor * (endColor.g - startColor.g));
-    const b = Math.round(startColor.b + factor * (endColor.b - startColor.b));
-    return `rgb(${r}, ${g}, ${b})`;
+    switch (colorTheme) {
+      case 'rainbow':
+        return `hsl(${(cappedAge * 18) % 360}, 100%, 50%)`;
+      case 'heatmap':
+        const intensity = Math.min(cappedAge / 20, 1);
+        return `rgb(${Math.floor(255 * intensity)}, ${Math.floor(255 * (1 - intensity))}, 0)`;
+      case 'classic':
+      default:
+        const startColor = { r: 192, g: 252, b: 188 };
+        const endColor = { r: 0, g: 54, b: 0 };
+        const factor = (cappedAge - 1) / 19;
+        return `rgb(${
+            Math.round(startColor.r + factor * (endColor.r - startColor.r))
+        }, ${
+            Math.round(startColor.g + factor * (endColor.g - startColor.g))
+        }, ${
+            Math.round(startColor.b + factor * (endColor.b - startColor.b))
+        })`;
+    }
   }
 
   function drawGrid(state: GameState) {
@@ -225,8 +214,6 @@ export default function GameOfLife() {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -297,7 +284,27 @@ export default function GameOfLife() {
     const centerX = Math.floor(GRID_SIZE / 2);
     const centerY = Math.floor(GRID_SIZE / 2);
 
-    pattern.forEach(([x, y]) => {
+    const transformedPattern = pattern.map(([x, y]) => {
+      let newX = x;
+      let newY = y;
+
+      if (patternRotation !== 0) {
+        const radians = (patternRotation * Math.PI) / 180;
+        const cos = Math.cos(radians);
+        const sin = Math.sin(radians);
+        [newX, newY] = [
+          Math.round(x * cos - y * sin),
+          Math.round(x * sin + y * cos)
+        ];
+      }
+
+      if (patternFlip === 'horizontal') newX = -newX;
+      if (patternFlip === 'vertical') newY = -newY;
+
+      return [newX, newY];
+    });
+
+    transformedPattern.forEach(([x, y]) => {
       const nx = (centerX + x + GRID_SIZE) % GRID_SIZE;
       const ny = (centerY + y + GRID_SIZE) % GRID_SIZE;
       newGrid[nx][ny] = true;
@@ -311,13 +318,29 @@ export default function GameOfLife() {
     });
   }
 
+  function saveGrid() {
+    localStorage.setItem('savedGrid', JSON.stringify(gameState.grid));
+  }
+
+  function loadGrid() {
+    const saved = localStorage.getItem('savedGrid');
+    if (saved) {
+      const loadedGrid = JSON.parse(saved);
+      setGameState({
+        grid: loadedGrid,
+        ageGrid: createEmptyAgeGrid(),
+        generation: 0,
+      });
+    }
+  }
+
   function handleCanvasMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!isDrawing) return;
     toggleCellUnderCursor(e);
   }
 
   function handleCanvasMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
-    if (!isDrawing || !e.buttons) return;
+    if (!isDrawing || !e.buttons || drawMode === 'single') return;
     toggleCellUnderCursor(e);
   }
 
@@ -333,6 +356,14 @@ export default function GameOfLife() {
     const row = Math.floor(((e.clientY - rect.top) * scaleY) / CELL_SIZE);
 
     if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
+      if (lastDrawnCell.current &&
+          lastDrawnCell.current[0] === row &&
+          lastDrawnCell.current[1] === col) {
+        return;
+      }
+
+      lastDrawnCell.current = [row, col];
+
       setGameState((old) => {
         const newGrid = old.grid.map((r) => [...r]);
         const newAge = old.ageGrid.map((r) => [...r]);
@@ -351,9 +382,29 @@ export default function GameOfLife() {
     }
   }
 
+  function handleTouchStart(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (!isDrawing) return;
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    });
+    handleCanvasMouseDown(mouseEvent as unknown as React.MouseEvent<HTMLCanvasElement>);
+  }
+
+  function handleTouchMove(e: React.TouchEvent<HTMLCanvasElement>) {
+    if (!isDrawing || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      buttons: 1,
+    });
+    handleCanvasMouseMove(mouseEvent as unknown as React.MouseEvent<HTMLCanvasElement>);
+  }
+
   return (
       <div className="flex flex-col items-center gap-6 w-full">
-        {/* Header Section */}
         <header className="w-full py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-primary bg-clip-text text-transparent bg-gray-800">
@@ -363,8 +414,7 @@ export default function GameOfLife() {
               <Button variant="ghost" size="icon" className="size-8 text-grey-100 hover:bg-grey-10">
                 <Info className="size-4"/>
               </Button>
-              <div
-                  className="absolute right-0 top-full mt-2 w-64 p-3 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
                 <p className="text-sm text-gray-700">
                   Adjust the toggles below to customize the rules. Use "Draw" mode to toggle cells, and "Run Until
                   Generation" to stop automatically.
@@ -372,12 +422,9 @@ export default function GameOfLife() {
               </div>
             </div>
           </div>
-
         </header>
 
-        {/* Main Content */}
         <div className="w-full flex flex-col lg:flex-row gap-6">
-          {/* Controls Section */}
           <div className="flex flex-col gap-4 w-full lg:w-auto">
             <div className="glass-panel p-4 flex flex-col gap-4">
               <div className="flex flex-wrap gap-2 justify-center">
@@ -389,7 +436,7 @@ export default function GameOfLife() {
                           onClick={toggleRunning}
                           className="control-button w-24"
                       >
-                        {isRunning ? <Pause className=" size-4 mr-2" /> : <Play className="size-4 mr-2" />}
+                        {isRunning ? <Pause className="size-4 mr-2" /> : <Play className="size-4 mr-2" />}
                         {isRunning ? "Pause" : "Start"}
                       </Button>
                     </TooltipTrigger>
@@ -464,10 +511,17 @@ export default function GameOfLife() {
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.deadEnd)}
+                    onClick={() => loadPattern(patterns.blinker)}
                     className="pattern-button"
                 >
-                  Dead End
+                  Blinker
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.glider)}
+                    className="pattern-button"
+                >
+                  Glider
                 </Button>
                 <Button
                     variant="outline"
@@ -476,17 +530,37 @@ export default function GameOfLife() {
                 >
                   Glider Gun
                 </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.beacon)}
+                    className="pattern-button"
+                >
+                  Beacon
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.toad)}
+                    className="pattern-button"
+                >
+                  Toad
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.rPentomino)}
+                    className="pattern-button"
+                >
+                  R-Pentomino
+                </Button>
               </div>
+
             </div>
 
-            {/* Generation counter */}
-            <div className="glass-panel p-4 text-center">
+            <div className="glass-panel p-3 text-center">
               <div className="text-sm font-medium text-muted-foreground">Generation</div>
               <div className="text-2xl font-bold text-primary">{gameState.generation}</div>
             </div>
 
-            {/* Permanent Options Panel */}
-            <div className="glass-panel p-4 flex flex-col gap-7">
+            <div className="glass-panel p-4 flex flex-col gap-2">
               <h3 className="font-semibold text-m text-center">Game Options</h3>
 
               <div className="flex flex-col gap-2">
@@ -535,6 +609,53 @@ export default function GameOfLife() {
               </label>
 
               <div className="flex flex-col gap-2">
+                <label className="text-sm">Color Theme:</label>
+                <div className="flex gap-2">
+                  <Button
+                      variant={colorTheme === 'classic' ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setColorTheme('classic')}
+                  >
+                    Classic
+                  </Button>
+                  <Button
+                      variant={colorTheme === 'rainbow' ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setColorTheme('rainbow')}
+                  >
+                    Rainbow
+                  </Button>
+                  <Button
+                      variant={colorTheme === 'heatmap' ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setColorTheme('heatmap')}
+                  >
+                    Heatmap
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm">Drawing Mode:</label>
+                <div className="flex gap-2">
+                  <Button
+                      variant={drawMode === 'single' ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setDrawMode('single')}
+                  >
+                    Single Cell
+                  </Button>
+                  <Button
+                      variant={drawMode === 'continuous' ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setDrawMode('continuous')}
+                  >
+                    Continuous
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <label htmlFor="speedSlider" className="text-sm">Speed:</label>
                   <input
@@ -569,7 +690,6 @@ export default function GameOfLife() {
             </div>
           </div>
 
-          {/* Canvas Section */}
           <div className="flex-1 flex flex-col items-center">
             <div
                 className={cn(
@@ -582,6 +702,8 @@ export default function GameOfLife() {
                     ref={canvasRef}
                     onMouseDown={handleCanvasMouseDown}
                     onMouseMove={handleCanvasMouseMove}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
                     className="rounded-lg shadow-inner bg-white dark:bg-gray-900"
                 />
                 {deadlyZoneEnabled && (
@@ -599,7 +721,7 @@ export default function GameOfLife() {
             </div>
             <div className="text-xs text-muted-foreground mt-2">
               {isDrawing
-                  ? "Click or drag to toggle cells"
+                  ? `Click or drag to toggle cells (${drawMode} mode)`
                   : "Enable drawing mode to edit the grid"}
             </div>
           </div>
