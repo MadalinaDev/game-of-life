@@ -76,7 +76,10 @@ export default function GameOfLife() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runningRef = useRef(isRunning);
   const lastDrawnCell = useRef<[number, number] | null>(null);
-
+  function setCauseAndStartTimer(cause: string) {
+    setCurrentCause(cause);
+    startTimeRef.current = Date.now(); // reset timer
+  }
   useEffect(() => {
     runningRef.current = isRunning;
   }, [isRunning]);
@@ -108,22 +111,24 @@ export default function GameOfLife() {
               reverseTimeInterval,
               ageColoringEnabled
             );
-          
+            
+    
             if (maxGenerations > 0 && newState.generation >= maxGenerations) {
               setIsRunning(false);
-              logHistory("Reached Max Generation");
+              logHistory("Reached Max Generation", newState.generation); // ✅ pass generation
             }
-          
+    
             if (isExtinct) {
               setIsRunning(false);
-              logHistory("Extinction");
+              logHistory("Extinction", newState.generation); // ✅ pass generation
             }
-          
+    
             return newState;
           });
         }
       }, speed);
     }
+    
 
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -135,32 +140,34 @@ export default function GameOfLife() {
         Array<boolean>(GRID_SIZE).fill(false)
     );
   }
-  function logHistory(result: string) {
+  function logHistory(result: string, generation: number) {
     const now = Date.now();
     let duration = "00:00";
   
-    // Calculate elapsed time since the last action
     if (startTimeRef.current) {
       const elapsed = Math.floor((now - startTimeRef.current) / 1000);
       const minutes = Math.floor(elapsed / 60);
       const seconds = elapsed % 60;
-      duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      duration = `${minutes.toString().padStart(2, "0")}:${seconds
+        .toString()
+        .padStart(2, "0")}`;
     }
-  
-    // Add new history entry to the top of the list
+    if (duration === "00:00") return;
+
     setHistory((prev) => [
       {
         cause: currentCause || "Unknown",
-        result,                          // e.g., "Reached Max Generation" or "Extinction"
-        generation: gameState.generation,
-        duration,                        // in mm:ss
+        result,
+        generation,
+        duration,
       },
-      ...prev, // newest entries first
+      ...prev,
     ]);
   
-    // Reset the timer for the next measurement
     startTimeRef.current = now;
   }
+  
+  
   
   function createEmptyAgeGrid(): number[][] {
     return Array.from({ length: GRID_SIZE }, () =>
@@ -308,7 +315,7 @@ export default function GameOfLife() {
   }
 
   function generateRandomGrid() {
-    setCurrentCause("Random Grid");
+    setCauseAndStartTimer("Random Grid");
     const newGrid = createEmptyGrid();
     const newAge = createEmptyAgeGrid();
     for (let i = 0; i < GRID_SIZE; i++) {
@@ -325,16 +332,18 @@ export default function GameOfLife() {
     });
   }
 
-  function loadPattern(pattern: number[][]) {
+  function loadPattern(pattern: number[][], label: string) {
+    setCauseAndStartTimer(label);
+  
     const newGrid = createEmptyGrid();
     const newAge = createEmptyAgeGrid();
     const centerX = Math.floor(GRID_SIZE / 2);
     const centerY = Math.floor(GRID_SIZE / 2);
-
+  
     const transformedPattern = pattern.map(([x, y]) => {
       let newX = x;
       let newY = y;
-
+  
       if (patternRotation !== 0) {
         const radians = (patternRotation * Math.PI) / 180;
         const cos = Math.cos(radians);
@@ -344,27 +353,27 @@ export default function GameOfLife() {
           Math.round(x * sin + y * cos)
         ];
       }
-
+  
       if (patternFlip === 'horizontal') newX = -newX;
       if (patternFlip === 'vertical') newY = -newY;
-
+  
       return [newX, newY];
     });
-
+  
     transformedPattern.forEach(([x, y]) => {
       const nx = (centerX + x + GRID_SIZE) % GRID_SIZE;
       const ny = (centerY + y + GRID_SIZE) % GRID_SIZE;
       newGrid[nx][ny] = true;
       newAge[nx][ny] = 1;
     });
-
+  
     setGameState({
       grid: newGrid,
       ageGrid: newAge,
       generation: 0,
     });
   }
-
+  
   function saveGrid() {
     localStorage.setItem('savedGrid', JSON.stringify(gameState.grid));
   }
@@ -551,49 +560,49 @@ export default function GameOfLife() {
               <div className="flex flex-wrap gap-2 justify-center">
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.stillLife)}
+                    onClick={() => loadPattern(patterns.stillLife, "Still Life")}
                     className="pattern-button"
                 >
                   Still Life
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.blinker)}
+                    onClick={() => loadPattern(patterns.blinker, "Blinker")}
                     className="pattern-button"
                 >
                   Blinker
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.glider)}
+                    onClick={() => loadPattern(patterns.glider, "Glider")}
                     className="pattern-button"
                 >
                   Glider
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.gliderGun)}
+                    onClick={() => loadPattern(patterns.gliderGun,  "Glider Gun")}
                     className="pattern-button"
                 >
                   Glider Gun
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.beacon)}
+                    onClick={() => loadPattern(patterns.beacon, "Beacon")}
                     className="pattern-button"
                 >
                   Beacon
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.toad)}
+                    onClick={() => loadPattern(patterns.toad, "Toad")}
                     className="pattern-button"
                 >
                   Toad
                 </Button>
                 <Button
                     variant="outline"
-                    onClick={() => loadPattern(patterns.rPentomino)}
+                    onClick={() => loadPattern(patterns.rPentomino, "R-Pentomino")}
                     className="pattern-button"
                 >
                   R-Pentomino
