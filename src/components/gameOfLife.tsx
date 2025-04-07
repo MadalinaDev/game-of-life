@@ -64,7 +64,15 @@ export default function GameOfLife() {
   const [patternRotation, setPatternRotation] = useState(0);
   const [patternFlip, setPatternFlip] = useState<'none' | 'horizontal' | 'vertical'>('none');
   const [colorTheme, setColorTheme] = useState<'classic' | 'rainbow' | 'heatmap'>('classic');
-
+  type HistoryEntry = {
+    cause: string;        
+    result: string;       
+    generation: number;
+    duration: string;
+  };
+  const [currentCause, setCurrentCause] = useState<string | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runningRef = useRef(isRunning);
   const lastDrawnCell = useRef<[number, number] | null>(null);
@@ -93,16 +101,24 @@ export default function GameOfLife() {
       intervalId = setInterval(() => {
         if (runningRef.current) {
           setGameState((old) => {
-            const newState = computeNextState(
-                old,
-                deadlyZoneEnabled,
-                reverseTimeEnabled,
-                reverseTimeInterval,
-                ageColoringEnabled
+            const { newState, isExtinct } = computeNextState(
+              old,
+              deadlyZoneEnabled,
+              reverseTimeEnabled,
+              reverseTimeInterval,
+              ageColoringEnabled
             );
+          
             if (maxGenerations > 0 && newState.generation >= maxGenerations) {
               setIsRunning(false);
+              logHistory("Reached Max Generation");
             }
+          
+            if (isExtinct) {
+              setIsRunning(false);
+              logHistory("Extinction");
+            }
+          
             return newState;
           });
         }
@@ -119,7 +135,33 @@ export default function GameOfLife() {
         Array<boolean>(GRID_SIZE).fill(false)
     );
   }
-
+  function logHistory(result: string) {
+    const now = Date.now();
+    let duration = "00:00";
+  
+    // Calculate elapsed time since the last action
+    if (startTimeRef.current) {
+      const elapsed = Math.floor((now - startTimeRef.current) / 1000);
+      const minutes = Math.floor(elapsed / 60);
+      const seconds = elapsed % 60;
+      duration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+  
+    // Add new history entry to the top of the list
+    setHistory((prev) => [
+      {
+        cause: currentCause || "Unknown",
+        result,                          // e.g., "Reached Max Generation" or "Extinction"
+        generation: gameState.generation,
+        duration,                        // in mm:ss
+      },
+      ...prev, // newest entries first
+    ]);
+  
+    // Reset the timer for the next measurement
+    startTimeRef.current = now;
+  }
+  
   function createEmptyAgeGrid(): number[][] {
     return Array.from({ length: GRID_SIZE }, () =>
         Array<number>(GRID_SIZE).fill(0)
@@ -132,7 +174,7 @@ export default function GameOfLife() {
       reverseTime: boolean,
       rtInterval: number,
       ageColors: boolean
-  ): GameState {
+  ): { newState: GameState; isExtinct: boolean }  {
     const { grid, ageGrid, generation } = old;
     const newGrid = createEmptyGrid();
     const newAge = createEmptyAgeGrid();
@@ -170,11 +212,15 @@ export default function GameOfLife() {
         }
       }
     }
+    const isExtinct = newGrid.flat().every((cell) => !cell);
 
     return {
-      grid: newGrid,
-      ageGrid: newAge,
-      generation: nextGen,
+      newState: {
+        grid: newGrid,
+        ageGrid: newAge,
+        generation: nextGen,
+      },
+      isExtinct,
     };
   }
 
@@ -262,6 +308,7 @@ export default function GameOfLife() {
   }
 
   function generateRandomGrid() {
+    setCurrentCause("Random Grid");
     const newGrid = createEmptyGrid();
     const newAge = createEmptyAgeGrid();
     for (let i = 0; i < GRID_SIZE; i++) {
@@ -559,7 +606,7 @@ export default function GameOfLife() {
               <div className="text-sm font-medium text-muted-foreground">Generation</div>
               <div className="text-2xl font-bold text-primary">{gameState.generation}</div>
             </div>
-
+            
 
             <div className="glass-panel p-4 flex flex-col gap-2">
               <h3 className="font-semibold text-m text-center">Game Options</h3>
@@ -689,6 +736,18 @@ export default function GameOfLife() {
                 </div>
               </div>
             </div>
+            <div className="glass-panel p-4 max-h-64 overflow-auto">
+            <h3 className="text-sm font-semibold text-center mb-2 text-muted-foreground">Generation History</h3>
+
+            <ul className="text-sm space-y-1">
+  {history.map((entry, index) => (
+    <li key={index} className="text-muted-foreground">
+      <strong>{entry.cause}</strong> → {entry.result} @ Gen {entry.generation} — {entry.duration}
+    </li>
+  ))}
+</ul>
+
+</div>
           </div>
 
           <div className="flex-1 flex flex-col items-center">
@@ -720,13 +779,9 @@ export default function GameOfLife() {
                 )}
               </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              {isDrawing
-                  ? `Click or drag to toggle cells (${drawMode} mode)`
-                  : "Enable drawing mode to edit the grid"}
-            </div>
           </div>
         </div>
+        
       </div>
   );
 }
