@@ -1,18 +1,21 @@
 import GameOfLife from "@/components/gameOfLife";
 
+
 export default function Home() {
     return (
-        <div className="min-h-screen flex flex-col">
-            <main className="flex-1 flex flex-col items-center p-4 md:p-8">
-                <div className="w-full max-w-6xl mx-auto glass-panel p-4 md:p-6">
-                    <GameOfLife />
-                </div>
-            </main>
-            <footer className="w-full py-4 text-center bg-secondary text-secondary-foreground">
+      <main className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-6 max-w-6xl w-full space-y-6">
+          <h1 className="text-3xl font-bold text-center text-gray-800">
+            Conway’s Game of Life
+          </h1>
+           <GameOfLife />
+          <footer className="w-full py-4 text-center bg-secondary text-secondary-foreground">
                 <p className="text-sm">
                     Created by Blîndu Andi, Caraman Mihai, Chirpicinic Mădălina, Iachim Diana, Popescu Sabina, team FAF-233
                 </p>
             </footer>
         </div>
+      </main>
     );
-}
+  }
+  
