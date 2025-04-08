@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, Spin } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 import {
   Play,
   Pause,
@@ -467,7 +468,7 @@ export default function GameOfLife() {
               Conway's Game of Life
             </h1>
             <div className="relative group">
-              <Button variant="ghost" size="icon" className="size-8 text-grey-100 hover:bg-grey-10">
+              <Button className="size-8 text-grey-100 hover:bg-grey-10">
                 <Info className="size-4"/>
               </Button>
               <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50">
@@ -488,7 +489,6 @@ export default function GameOfLife() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                          variant={isRunning ? "destructive" : "default"}
                           onClick={toggleRunning}
                           className="control-button w-24"
                       >
@@ -506,7 +506,6 @@ export default function GameOfLife() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                          variant="destructive"
                           onClick={resetGrid}
                           className="control-button"
                       >
@@ -522,7 +521,6 @@ export default function GameOfLife() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                          variant="secondary"
                           onClick={generateRandomGrid}
                           className="control-button"
                       >
@@ -538,7 +536,6 @@ export default function GameOfLife() {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                          variant={isDrawing ? "secondary" : "outline"}
                           onClick={() => setIsDrawing(!isDrawing)}
                           className="control-button w-26"
                       >
@@ -559,70 +556,60 @@ export default function GameOfLife() {
 
               <div className="flex flex-wrap gap-2 justify-center">
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.stillLife, "Still Life")}
                     className="pattern-button"
                 >
                   Still Life
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.blinker, "Blinker")}
                     className="pattern-button"
                 >
                   Blinker
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.glider, "Glider")}
                     className="pattern-button"
                 >
                   Glider
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.gliderGun,  "Glider Gun")}
                     className="pattern-button"
                 >
                   Glider Gun
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.beacon, "Beacon")}
                     className="pattern-button"
                 >
                   Beacon
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.toad, "Toad")}
                     className="pattern-button"
                 >
                   Toad
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.rPentomino, "R-Pentomino")}
                     className="pattern-button"
                 >
                   R-Pentomino
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.LWSS, "LWSS")}
                     className="pattern-button"
                 >
                   LWSS
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.PULSAR, "PULSAR")}
                     className="pattern-button"
                 >
                   Pulsar
                 </Button>
                 <Button
-                    variant="outline"
                     onClick={() => loadPattern(patterns.DIEHARD, "DIEHARD")}
                     className="pattern-button"
                 >
@@ -690,22 +677,19 @@ export default function GameOfLife() {
                 <label className="text-sm">Color Theme:</label>
                 <div className="flex gap-2">
                   <Button
-                      variant={colorTheme === 'classic' ? "secondary" : "outline"}
-                      size="sm"
+                      
                       onClick={() => setColorTheme('classic')}
                   >
                     Classic
                   </Button>
                   <Button
-                      variant={colorTheme === 'rainbow' ? "secondary" : "outline"}
-                      size="sm"
+                    
                       onClick={() => setColorTheme('rainbow')}
                   >
                     Rainbow
                   </Button>
                   <Button
-                      variant={colorTheme === 'heatmap' ? "secondary" : "outline"}
-                      size="sm"
+                      
                       onClick={() => setColorTheme('heatmap')}
                   >
                     Heatmap
@@ -717,15 +701,12 @@ export default function GameOfLife() {
                 <label className="text-sm">Drawing Mode:</label>
                 <div className="flex gap-2">
                   <Button
-                      variant={drawMode === 'single' ? "secondary" : "outline"}
-                      size="sm"
+                      
                       onClick={() => setDrawMode('single')}
                   >
                     Single Cell
                   </Button>
                   <Button
-                      variant={drawMode === 'continuous' ? "secondary" : "outline"}
-                      size="sm"
                       onClick={() => setDrawMode('continuous')}
                   >
                     Continuous
