@@ -607,6 +607,27 @@ export default function GameOfLife() {
                 >
                   R-Pentomino
                 </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.LWSS, "LWSS")}
+                    className="pattern-button"
+                >
+                  LWSS
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.PULSAR, "PULSAR")}
+                    className="pattern-button"
+                >
+                  Pulsar
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => loadPattern(patterns.DIEHARD, "DIEHARD")}
+                    className="pattern-button"
+                >
+                  Diehard
+                </Button>
               </div>
 
             </div>
